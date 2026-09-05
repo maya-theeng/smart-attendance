@@ -1,0 +1,223 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  background: #f0fcff;
+}
+
+/* ── Sidebar ── */
+.admin-sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: linear-gradient(160deg, #0a3d5c 0%, #0bc0e4 60%, #0bc0e4 140%);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-shadow: 4px 0 20px rgba(10, 63, 92, 0.15);
+  z-index: 100;
+  transition: width 0.3s ease, min-width 0.3s ease;
+}
+
+.admin-sidebar.collapsed {
+  width: 84px;
+  min-width: 84px;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 30px 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 8px;
+  min-height: 90px;
+}
+
+.admin-brand-icon {
+  font-size: 32px;
+}
+
+.admin-brand-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  display: block;
+}
+
+.admin-brand-badge {
+  font-size: 11px;
+  color: #0bc0e4;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.admin-sidebar-toggle {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+}
+
+.admin-sidebar-toggle:hover {
+  background: #0bc0e4;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 16px;
+  flex: 1;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.admin-nav-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.admin-nav-item.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #0bc0e4;
+}
+
+.admin-sidebar.collapsed .admin-nav-item {
+  justify-content: center;
+  padding: 14px 0;
+}
+
+.admin-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-logout {
+  margin: 16px;
+  padding: 14px 18px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: inherit;
+}
+
+.admin-sidebar.collapsed .admin-logout {
+  justify-content: center;
+  padding: 14px 0;
+}
+
+.admin-logout:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fff;
+}
+
+/* ── Main Area ── */
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Reusable Admin Page Header */
+.admin-page-header {
+  padding: 32px 40px;
+  background: #fff;
+  border-bottom: 1px solid #e8f0f7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-page-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0a3d5c;
+  margin: 0;
+}
+
+.admin-page-header p {
+  color: #6b8caa;
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.admin-page-content {
+  padding: 40px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Primary Button Shared */
+.admin-btn-primary {
+  background: #0bc0e4;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(11, 192, 228, 0.3);
+}
+
+.admin-btn-primary:hover {
+  background: #0093c4;
+  transform: translateY(-1px);
+}
+
+/* Global Admin Card Styling to match Student Dashboard */
+.admin-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.admin-card h3 {
+  font-size: 16px;
+  color: #0a3d5c;
+  margin: 0 0 16px;
+  font-weight: 700;
+  border-bottom: 1px solid #f0fcff;
+  padding-bottom: 12px;
+}

@@ -1,0 +1,122 @@
+Code,Subject Name,Department,Semester,Total Classes
+CACS001,Digital logic,,,0
+CACS017,Operating System,,,0
+CACS101,Computer Fundamentals & Applications,BCA,1,32
+CACS105,Digital Logic,BCA,1,32
+CAEN103,English I,BCA,1,32
+CAMT104,Mathematics I,BCA,1,32
+CASO102,Society and Technology,BCA,1,32
+CAAC152,Financial Accounting,BCA,2,32
+CACS151,C Programming,BCA,2,32
+CACS155,Microprocessor and Computer Architecture,BCA,2,32
+CAEN153,English II,BCA,2,32
+CAMT154,Mathematics II,BCA,2,32
+CACS201,Data Structures and Algorithms,BCA,3,32
+CACS203,System Analysis and Design,BCA,3,32
+CACS204,OOP in Java,BCA,3,32
+CACS205,Web Technology,BCA,3,32
+CAST202,Probability and Statistics,BCA,3,32
+CACS251,Operating System,BCA,4,32
+CACS253,Software Engineering,BCA,4,32
+CACS254,Scripting Language,BCA,4,32
+CACS255,Database Management System,BCA,4,32
+CAMT252,Numerical Methods,BCA,4,32
+CACS301,MIS and E-Business,BCA,5,32
+CACS302,DotNet Technology,BCA,5,32
+CACS303,Computer Networking,BCA,5,32
+CACS305,Computer Graphics and Animation,BCA,5,32
+CAMG304,Introduction to Management,BCA,5,32
+CACS351,Mobile Programming,BCA,6,32
+CACS352,Distributed System,BCA,6,32
+CACS354,Advanced Java Programming,BCA,6,32
+CACS355,Network Programming,BCA,6,32
+CAEC353,Applied Economics,BCA,6,32
+CACS401,Cyber Law and Professional Ethics,BCA,7,32
+CACS402,Cloud Computing,BCA,7,32
+CAEL404,Elective I,BCA,7,32
+CAEL405,Elective II,BCA,7,32
+CAIN403,Internship,BCA,7,32
+CAEL453,Elective III,BCA,8,32
+CAEL454,Elective IV,BCA,8,32
+CAOR451,Operations Research,BCA,8,32
+CAPR452,Project III,BCA,8,32
+BIT101,Introduction to IT,BIT,1,32
+BIT102,C Programming,BIT,1,32
+BIT103,Digital Logic,BIT,1,32
+BIT104,Basic Mathematics,BIT,1,32
+BIT105,Sociology,BIT,1,32
+BIT151,Microprocessor & Comp Arch,BIT,2,32
+BIT152,Object Oriented Prog (C++),BIT,2,32
+BIT153,Discrete Structure,BIT,2,32
+BIT154,Statistics I,BIT,2,32
+BIT155,Principles of Management,BIT,2,32
+BIT201,Data Structures & Algos,BIT,3,32
+BIT202,Database Management System,BIT,3,32
+BIT203,Numerical Methods,BIT,3,32
+BIT204,Statistics II,BIT,3,32
+BIT205,Operating Systems,BIT,3,32
+BIT251,Web Technology I,BIT,4,32
+BIT252,Artificial Intelligence,BIT,4,32
+BIT253,Systems Analysis and Design,BIT,4,32
+BIT254,Network & Data Communication,BIT,4,32
+BIT255,Operations Research,BIT,4,32
+BIT301,Web Technology II,BIT,5,32
+BIT302,Software Engineering,BIT,5,32
+BIT303,Information Security,BIT,5,32
+BIT304,Computer Graphics,BIT,5,32
+BIT305,Technical Writing,BIT,5,32
+BIT351,Advanced Java Programming,BIT,6,32
+BIT352,E-Commerce,BIT,6,32
+BIT353,System Administration,BIT,6,32
+BIT354,Research Methodology,BIT,6,32
+BIT355,Elective I,BIT,6,32
+BIT401,Advanced Database Management,BIT,7,32
+BIT402,Mobile Application Development,BIT,7,32
+BIT403,Project Work,BIT,7,32
+BIT404,Elective II,BIT,7,32
+BIT405,Elective III,BIT,7,32
+BIT451,Network Administration,BIT,8,32
+BIT452,Internship,BIT,8,32
+BIT453,Elective IV,BIT,8,32
+BIT454,Elective V,BIT,8,32
+CSC109,Intro to Info Technology,BSc.CSIT,1,32
+CSC110,C Programming,BSc.CSIT,1,32
+CSC111,Digital Logic,BSc.CSIT,1,32
+MTH112,Mathematics I,BSc.CSIT,1,32
+PHY113,Physics,BSc.CSIT,1,32
+CSC160,Discrete Structures,BSc.CSIT,2,32
+CSC161,Object Oriented Prog (C++),BSc.CSIT,2,32
+CSC162,Microprocessor,BSc.CSIT,2,32
+MTH163,Mathematics II,BSc.CSIT,2,32
+STA164,Statistics I,BSc.CSIT,2,32
+CSC206,Data Structures & Algos,BSc.CSIT,3,32
+CSC207,Numerical Methods,BSc.CSIT,3,32
+CSC208,Computer Architecture,BSc.CSIT,3,32
+CSC209,Computer Graphics,BSc.CSIT,3,32
+STA210,Statistics II,BSc.CSIT,3,32
+CSC257,Theory of Computation,BSc.CSIT,4,32
+CSC258,Computer Networks,BSc.CSIT,4,32
+CSC259,Operating Systems,BSc.CSIT,4,32
+CSC260,Database Management System,BSc.CSIT,4,32
+CSC261,Artificial Intelligence,BSc.CSIT,4,32
+CSC314,Design & Analysis of Algorithms,BSc.CSIT,5,32
+CSC315,System Analysis and Design,BSc.CSIT,5,32
+CSC316,Cryptography,BSc.CSIT,5,32
+CSC317,Simulation and Modeling,BSc.CSIT,5,32
+CSC318,Web Technology,BSc.CSIT,5,32
+CSC319,Elective I,BSc.CSIT,5,32
+CSC364,Software Engineering,BSc.CSIT,6,32
+CSC365,Computer Design & Construction,BSc.CSIT,6,32
+CSC366,E-Governance,BSc.CSIT,6,32
+CSC367,NET Centric Computing,BSc.CSIT,6,32
+CSC368,Technical Writing,BSc.CSIT,6,32
+CSC369,Elective II,BSc.CSIT,6,32
+CSC409,Advanced Java Programming,BSc.CSIT,7,32
+CSC410,Data Warehousing & Data Mining,BSc.CSIT,7,32
+CSC412,Project Work,BSc.CSIT,7,32
+CSC413,Elective III,BSc.CSIT,7,32
+MGT411,Principles of Management,BSc.CSIT,7,32
+CSC461,Advanced Database,BSc.CSIT,8,32
+CSC462,Internship,BSc.CSIT,8,32
+CSC463,Elective IV,BSc.CSIT,8,32
+CSC464,Elective V,BSc.CSIT,8,32
