@@ -11,4 +11,5 @@ facenet-pytorch
 opencv-python-headless
 scipy
 mysqlclient
+python-dotenv>=1.0.0
 
