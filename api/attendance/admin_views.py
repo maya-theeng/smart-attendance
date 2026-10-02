@@ -3,6 +3,8 @@ import logging
 import sys
 import os
 
+import numpy as np
+
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -10,7 +12,6 @@ from rest_framework.permissions import IsAdminUser, BasePermission
 from rest_framework.response import Response
 
 from .models import Subject, StudentProfile, AttendanceRecord, EmailNotification, Course, Teacher
-
 class IsAdminOrTeacher(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
@@ -21,9 +22,7 @@ class IsAdminOrTeacher(BasePermission):
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
 logger = logging.getLogger(__name__)
-
 
 def _get_face_service():
     try:
@@ -33,8 +32,6 @@ def _get_face_service():
         logger.error(f"Failed to import face recognition module: {e}")
         logger.error("Make sure torch, facenet-pytorch are installed: pip install torch torchvision facenet-pytorch")
         return None
-
-
 
 #admin dashbaord stats
 @api_view(['GET'])
@@ -46,18 +43,27 @@ def admin_dashboard_stats(request):
     # Optional: Filter by today's date
     from django.utils import timezone
     today = timezone.now().date()
+    today_ym = today.strftime('%Y-%m')
     
     records_today = AttendanceRecord.objects.filter(date=today)
     present_today = records_today.filter(status=AttendanceRecord.STATUS_PRESENT).count()
     absent_today = records_today.filter(status=AttendanceRecord.STATUS_ABSENT).count()
     
-    # Weekly presence trend line (daily stats for last 7 dates with records)
+    # Available distinct months from all attendance records
+    all_dates = AttendanceRecord.objects.values_list('date', flat=True).distinct()
+    available_months = sorted(list(set(d.strftime('%Y-%m') for d in all_dates)), reverse=True)
+    if today_ym not in available_months:
+        available_months.insert(0, today_ym)
+
+    month_filter = request.query_params.get('month') or available_months[0]
+    
+    # Trend line: daily stats for the selected month
     recent_dates = (
-        AttendanceRecord.objects.values_list('date', flat=True)
+        AttendanceRecord.objects.filter(date__startswith=month_filter)
+        .values_list('date', flat=True)
         .distinct()
-        .order_by('-date')[:7]
+        .order_by('date')
     )
-    recent_dates = sorted(list(recent_dates))
     
     weekly_trend = []
     for d in recent_dates:
@@ -73,13 +79,23 @@ def admin_dashboard_stats(request):
             "rate": rate
         })
         
-    # Subject-wise comparison bar charts (average attendance rate per subject)
-    subjects = Subject.objects.all()
+    # Available departments and semesters for filter dropdowns
+    dept_sem_pairs = Subject.objects.values("department", "semester").distinct().order_by("department", "semester")
+    available_departments = sorted(set(x["department"] for x in dept_sem_pairs if x["department"]))
+    
+    # Selected dept/sem (default to first available)
+    selected_dept = request.query_params.get("dept") or (available_departments[0] if available_departments else "")
+    sems_for_dept = sorted(set(x["semester"] for x in dept_sem_pairs if x["department"] == selected_dept))
+    selected_sem = request.query_params.get("sem") or (sems_for_dept[0] if sems_for_dept else "")
+
+    # Subject-wise comparison — filtered by selected department + semester
+    subjects = Subject.objects.filter(department__iexact=selected_dept, semester__iexact=selected_sem)
     subject_stats = []
     for sub in subjects:
         sub_records = AttendanceRecord.objects.filter(subject=sub)
         sub_total = sub_records.count()
         sub_present = sub_records.filter(status=AttendanceRecord.STATUS_PRESENT).count()
+        sub_absent = sub_total - sub_present
         rate = round((sub_present / sub_total) * 100) if sub_total > 0 else 0
         subject_stats.append({
             "id": sub.id,
@@ -87,8 +103,10 @@ def admin_dashboard_stats(request):
             "code": sub.code,
             "percentage": rate,
             "present": sub_present,
+            "absent": sub_absent,
             "total": sub_total
         })
+
         
     #Alert list(students with attendance below critical threshold (below 75%))
     students = StudentProfile.objects.select_related('user').all()
@@ -124,7 +142,13 @@ def admin_dashboard_stats(request):
         "present_today": present_today,
         "absent_today": absent_today,
         "weekly_trend": weekly_trend,
+        "available_months": available_months,
+        "selected_month": month_filter,
         "subject_stats": subject_stats,
+        "available_departments": available_departments,
+        "sems_for_dept": sems_for_dept,
+        "selected_dept": selected_dept,
+        "selected_sem": selected_sem,
         "students_below_threshold": students_below_threshold
     })
 
@@ -335,6 +359,48 @@ def admin_student_face_upload(request, user_id):
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+        # --- Duplicate face check ---
+        # Compare the new embedding against all existing registered faces
+        # to prevent the same face being registered under multiple accounts.
+        new_embedding = np.array(embedding_list)
+        duplicate_name = None
+
+        # Check existing students (exclude this profile itself)
+        for other_profile in StudentProfile.objects.exclude(user__id=user_id).filter(face_encoding__isnull=False).exclude(face_encoding=""):
+            try:
+                existing_emb = np.array(json.loads(other_profile.face_encoding))
+                similarity = float(np.dot(
+                    new_embedding / (np.linalg.norm(new_embedding) + 1e-10),
+                    existing_emb / (np.linalg.norm(existing_emb) + 1e-10)
+                ))
+                if similarity >= face_service.recognition_threshold:
+                    duplicate_name = other_profile.user.get_full_name() or other_profile.student_id
+                    break
+            except Exception:
+                continue
+
+        if duplicate_name is None:
+            # Also check teachers
+            for teacher in Teacher.objects.filter(face_encoding__isnull=False).exclude(face_encoding=""):
+                try:
+                    existing_emb = np.array(json.loads(teacher.face_encoding))
+                    similarity = float(np.dot(
+                        new_embedding / (np.linalg.norm(new_embedding) + 1e-10),
+                        existing_emb / (np.linalg.norm(existing_emb) + 1e-10)
+                    ))
+                    if similarity >= face_service.recognition_threshold:
+                        duplicate_name = teacher.full_name
+                        break
+                except Exception:
+                    continue
+
+        if duplicate_name:
+            return Response(
+                {"detail": f"This face is already registered under '{duplicate_name}'. Each person can only have one account."},
+                status=status.HTTP_409_CONFLICT
+            )
+        # --- End duplicate check ---
+
         profile.face_encoding = json.dumps(embedding_list)
         profile.save()
 
@@ -361,24 +427,79 @@ def admin_student_face_upload(request, user_id):
 @api_view(['GET'])
 @permission_classes([IsAdminOrTeacher])
 def admin_attendance_records(request):
-    records = AttendanceRecord.objects.select_related('student', 'subject')
+    records = AttendanceRecord.objects.select_related('student', 'student__profile', 'subject')
     if not request.user.is_staff and hasattr(request.user, 'teacher_profile'):
         teacher = request.user.teacher_profile
         subjects = teacher.subjects.all()
         records = records.filter(subject__in=subjects)
 
-    records = records.all()
+    # Optional server-side filtering
+    subject_id = request.query_params.get('subject_id')
+    date = request.query_params.get('date')
+    status_filter = request.query_params.get('status')
+
+    if subject_id:
+        records = records.filter(subject_id=subject_id)
+    if date:
+        records = records.filter(date=date)
+    if status_filter:
+        records = records.filter(status__iexact=status_filter)
+
+    records = records.order_by('-date', '-created_at')
     data = []
     for rec in records:
+        profile = getattr(rec.student, 'profile', None)
         data.append({
             "id": rec.id,
+            "student_id": rec.student.id,
+            "student_id_code": profile.student_id if profile else "N/A",
             "student_name": rec.student.get_full_name() or rec.student.username,
+            "department": profile.department if profile else "",
+            "semester": profile.semester if profile else "",
+            "subject_id": rec.subject.id,
             "subject_name": rec.subject.name,
+            "subject_code": rec.subject.code,
             "date": rec.date.isoformat() if hasattr(rec.date, 'isoformat') else str(rec.date),
             "status": rec.status,
             "time": rec.time.strftime('%I:%M %p') if rec.time else 'N/A'
         })
     return Response(data)
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAdminOrTeacher])
+def admin_attendance_record_detail(request, record_id):
+    try:
+        record = AttendanceRecord.objects.select_related('subject').get(id=record_id)
+    except AttendanceRecord.DoesNotExist:
+        return Response({"detail": "Attendance record not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Teacher check: can only edit/delete records for subjects assigned to them
+    if not request.user.is_staff and hasattr(request.user, 'teacher_profile'):
+        teacher = request.user.teacher_profile
+        if not teacher.subjects.filter(id=record.subject_id).exists():
+            return Response(
+                {"detail": "Permission denied. You can only manage attendance for your assigned subjects."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+    if request.method == 'PATCH':
+        new_status = request.data.get('status')
+        if new_status not in [AttendanceRecord.STATUS_PRESENT, AttendanceRecord.STATUS_ABSENT]:
+            return Response(
+                {"detail": f"Status must be '{AttendanceRecord.STATUS_PRESENT}' or '{AttendanceRecord.STATUS_ABSENT}'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        record.status = new_status
+        record.save()
+        return Response({
+            "detail": f"Status updated to {new_status}.",
+            "id": record.id,
+            "status": record.status
+        })
+
+    elif request.method == 'DELETE':
+        record.delete()
+        return Response({"detail": "Attendance record deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['POST'])
 @permission_classes([IsAdminOrTeacher])
@@ -530,6 +651,48 @@ def admin_teacher_face_upload(request, teacher_id):
         except ValueError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+        # --- Duplicate face check ---
+        # Compare the new embedding against all existing registered faces
+        # to prevent the same face being registered under multiple accounts.
+        new_embedding = np.array(embedding_list)
+        duplicate_name = None
+
+        # Check existing students
+        for other_profile in StudentProfile.objects.filter(face_encoding__isnull=False).exclude(face_encoding=""):
+            try:
+                existing_emb = np.array(json.loads(other_profile.face_encoding))
+                similarity = float(np.dot(
+                    new_embedding / (np.linalg.norm(new_embedding) + 1e-10),
+                    existing_emb / (np.linalg.norm(existing_emb) + 1e-10)
+                ))
+                if similarity >= face_service.recognition_threshold:
+                    duplicate_name = other_profile.user.get_full_name() or other_profile.student_id
+                    break
+            except Exception:
+                continue
+
+        if duplicate_name is None:
+            # Check other teachers (exclude this teacher itself)
+            for other_teacher in Teacher.objects.exclude(id=teacher_id).filter(face_encoding__isnull=False).exclude(face_encoding=""):
+                try:
+                    existing_emb = np.array(json.loads(other_teacher.face_encoding))
+                    similarity = float(np.dot(
+                        new_embedding / (np.linalg.norm(new_embedding) + 1e-10),
+                        existing_emb / (np.linalg.norm(existing_emb) + 1e-10)
+                    ))
+                    if similarity >= face_service.recognition_threshold:
+                        duplicate_name = other_teacher.full_name
+                        break
+                except Exception:
+                    continue
+
+        if duplicate_name:
+            return Response(
+                {"detail": f"This face is already registered under '{duplicate_name}'. Each person can only have one account."},
+                status=status.HTTP_409_CONFLICT
+            )
+        # --- End duplicate check ---
+
         teacher.face_encoding = json.dumps(embedding_list)
         teacher.save()
         return Response({"detail": "Face registered successfully."})
@@ -558,8 +721,27 @@ def admin_recognize_staff_faces(request):
     except Exception as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    detection = face_service.detect_faces(pil_image)
-    if detection["count"] == 0:
+    # Build known encodings list in the format recognize_faces() expects
+    teachers = Teacher.objects.exclude(face_encoding="")
+    known_encodings = []
+    for t in teachers:
+        try:
+            emb = json.loads(t.face_encoding)
+            known_encodings.append({
+                "student_id": t.id,   # reuse student_id key; we'll remap to teacher_id below
+                "name": t.full_name,
+                "encoding": emb,
+            })
+        except Exception:
+            continue
+
+    # Run recognition using the same pipeline as the student scanner
+    try:
+        raw_results = face_service.recognize_faces(pil_image, known_encodings)
+    except Exception as e:
+        return Response({"detail": f"Recognition failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    if not raw_results:
         return Response({"faces_detected": 0, "faces_matched": 0, "results": []})
 
     from .models import TeacherAttendance
@@ -571,65 +753,35 @@ def admin_recognize_staff_faces(request):
     results = []
     faces_matched = 0
 
-    teachers = Teacher.objects.exclude(face_encoding="")
-    db_embeddings = []
-    db_metadata = []
-    for t in teachers:
-        try:
-            emb = json.loads(t.face_encoding)
-            db_embeddings.append(emb)
-            db_metadata.append({"teacher_id": t.id, "name": t.full_name})
-        except:
-            continue
-
-    for i in range(detection["count"]):
-        box = detection["boxes"][i]
-        emb = detection["embeddings"][i]
-        
-        x1, y1, x2, y2 = box.astype(int).tolist()
-        width, height = pil_image.size
-        x1_c, y1_c = max(0, x1), max(0, y1)
-        x2_c, y2_c = min(width, x2), min(height, y2)
-        face_crop = pil_image.crop((x1_c, y1_c, x2_c, y2_c))
-
-        is_live = True
-        try:
-            from ml.liveness import detect_liveness
-            is_live, _, _ = detect_liveness(face_crop)
-        except Exception:
-            pass
-
-        face_result = {
-            "bbox": {"x": x1, "y": y1, "w": x2-x1, "h": y2-y1},
-            "matched": False,
-            "is_live": is_live,
-            "name": "Unknown",
-            "teacher_id": None,
-            "confidence": 0
+    for face in raw_results:
+        # Remap student_id → teacher_id in the result dict
+        teacher_id = face.get("student_id")  # we stored teacher id in the student_id slot
+        result = {
+            "bbox": face["bbox"],
+            "matched": face["matched"],
+            "is_live": face["is_live"],
+            "name": face["name"],
+            "teacher_id": teacher_id,
+            "confidence": face["confidence"],
         }
 
-        if is_live and db_embeddings:
-            match_idx, confidence = face_service.recognize_face(emb, db_embeddings)
-            if match_idx is not None and confidence >= face_service.threshold:
-                meta = db_metadata[match_idx]
-                face_result["matched"] = True
-                face_result["name"] = meta["name"]
-                face_result["teacher_id"] = meta["teacher_id"]
-                face_result["confidence"] = float(confidence)
-                faces_matched += 1
-                
-                # Log attendance!
-                teacher = Teacher.objects.get(id=meta["teacher_id"])
+        if face["matched"] and face["is_live"] and teacher_id:
+            faces_matched += 1
+            # Log attendance automatically
+            try:
+                teacher = Teacher.objects.get(id=teacher_id)
                 TeacherAttendance.objects.get_or_create(
                     teacher=teacher,
                     date=date_today,
                     defaults={'first_activity_time': time_now, 'classes_taught': 0}
                 )
+            except Teacher.DoesNotExist:
+                pass
 
-        results.append(face_result)
+        results.append(result)
 
     return Response({
-        "faces_detected": detection["count"],
+        "faces_detected": len(raw_results),
         "faces_matched": faces_matched,
         "results": results
     })
@@ -999,7 +1151,8 @@ def admin_teachers(request):
             "phone": t.phone,
             "department": t.department,
             "specialty": t.specialty,
-            "subjects": list(t.subjects.values_list('id', flat=True))
+            "subjects": list(t.subjects.values_list('id', flat=True)),
+            "face_registered": t.face_registered,
         } for t in teachers]
         return Response(data)
 
@@ -1059,7 +1212,8 @@ def admin_teacher_detail(request, teacher_id):
             "full_name": teacher.full_name, "email": teacher.email,
             "phone": teacher.phone, "department": teacher.department,
             "specialty": teacher.specialty,
-            "subjects": list(teacher.subjects.values_list('id', flat=True))
+            "subjects": list(teacher.subjects.values_list('id', flat=True)),
+            "face_registered": teacher.face_registered,
         })
 
     elif request.method == 'PUT':

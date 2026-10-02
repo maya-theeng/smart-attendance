@@ -150,3 +150,6 @@ npm --prefix client run build
 * Never commit the `.env` file to version control.
 * Use [Google App Passwords](https://support.google.com/accounts/answer/185833) rather than your personal Google account password for SMTP email delivery.
 * Keep `DEBUG=False` and configure `ALLOWED_HOSTS` in production environments.
+
+
+"The liveness/anti-spoofing module was implemented but yielded inconsistent results when tested with webcam input due to JPEG compression artifacts and varying lighting conditions; this remains a known limitation."

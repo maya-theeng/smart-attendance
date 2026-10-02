@@ -319,7 +319,7 @@ export default function Students() {
                 </div>
                 <div className="form-group">
                   <label>Temporary Password</label>
-                  <input type="text" name="password" required value={formData.password} onChange={handleInputChange} />
+                  <input type="password" name="password" required value={formData.password} onChange={handleInputChange} />
                 </div>
               </div>
               <div className="form-row">

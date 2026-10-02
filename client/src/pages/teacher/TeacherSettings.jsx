@@ -1,16 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import API from "../../api/api";
-import "./Students.css";
-import "./AdminLayout.css";
+import "../admin/Students.css";
+import "../admin/AdminLayout.css";
 
-export default function Settings() {
-  const adminName  = sessionStorage.getItem("admin_name")  || "Admin";
-  const adminEmail = sessionStorage.getItem("admin_email") || "—";
-  const adminUser  = sessionStorage.getItem("admin_username") || "—";
+export default function TeacherSettings() {
+  const [profile, setProfile] = useState({
+    name:  sessionStorage.getItem("teacher_name") || "Teacher",
+    email: sessionStorage.getItem("teacher_email") || "",
+    employee_id: "",
+    department: "",
+    specialty: "",
+  });
 
   const [pwdData, setPwdData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdMsg, setPwdMsg] = useState("");
+
+  useEffect(() => {
+    API.get("teacher/profile/")
+      .then((res) => setProfile(res.data))
+      .catch(() => {});
+  }, []);
 
   const handlePwdChange = (e) => setPwdData({ ...pwdData, [e.target.name]: e.target.value });
 
@@ -49,33 +59,37 @@ export default function Settings() {
     marginBottom: 6, fontWeight: 500,
   };
 
+  const profileRows = [
+    { label: "Full Name",    value: profile.name },
+    { label: "Email",        value: profile.email },
+    { label: "Employee ID",  value: profile.employee_id },
+    { label: "Department",   value: profile.department },
+    { label: "Specialty",    value: profile.specialty },
+  ];
+
   return (
     <>
       <header className="admin-page-header">
         <div>
           <h1>Settings</h1>
-          <p>Manage your admin account and security preferences</p>
+          <p>Manage your account and security preferences</p>
         </div>
       </header>
 
       <div className="admin-page-content">
         <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
 
-          {/* Admin Profile */}
+          {/* Teacher Profile */}
           <div className="admin-card" style={{ flex: 1, minWidth: 280 }}>
             <div style={{ marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0a3d5c" }}>Admin Profile</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0a3d5c" }}>Teacher Profile</h3>
               <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>Your registered information</p>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-              {[
-                { label: "Full Name", value: adminName },
-                { label: "Email",    value: adminEmail },
-                { label: "Username", value: adminUser },
-              ].map((item) => (
+              {profileRows.map((item) => (
                 <div key={item.label} style={{ display: "flex", justifyContent: "space-between", padding: "14px 0", borderBottom: "1px solid #f0fcff" }}>
                   <span style={{ fontSize: 13, color: "#6b8caa", fontWeight: 500 }}>{item.label}</span>
-                  <span style={{ fontSize: 14, color: "#1e293b", fontWeight: 600 }}>{item.value}</span>
+                  <span style={{ fontSize: 14, color: "#1e293b", fontWeight: 600 }}>{item.value || "—"}</span>
                 </div>
               ))}
             </div>

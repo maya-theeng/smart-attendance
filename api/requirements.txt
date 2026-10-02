@@ -4,7 +4,7 @@ django-cors-headers==4.9.0
 djangorestframework==3.17.1
 sqlparse==0.5.5
 Pillow==10.3.0
-numpy==1.26.4
+numpy==2.5.3
 torch
 torchvision
 facenet-pytorch
@@ -12,4 +12,4 @@ opencv-python-headless
 scipy
 mysqlclient
 python-dotenv>=1.0.0
-
+matplotlib==3.11.2

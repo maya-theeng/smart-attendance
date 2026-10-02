@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BarChart3, Smartphone, Bell, TrendingUp } from "lucide-react";
-import API from "../api/api";
+import API from "../../api/api";
 import "./Home.css";
 
 export default function Home() {

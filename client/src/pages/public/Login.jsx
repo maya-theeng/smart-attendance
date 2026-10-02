@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import API from "../api/api";
+import API from "../../api/api";
 import "./Login.css";
 
 export default function Login() {
@@ -35,7 +35,9 @@ export default function Login() {
       sessionStorage.setItem("name", response.data.name || "");
 
       if (response.data.is_admin) {
-        sessionStorage.setItem("admin_name", response.data.name || "Admin");
+        sessionStorage.setItem("admin_name",     response.data.name     || "Admin");
+        sessionStorage.setItem("admin_username", response.data.username || "");
+        sessionStorage.setItem("admin_email",    response.data.email    || "");
         navigate("/admin/dashboard");
       } else if (response.data.is_teacher) {
         sessionStorage.setItem("teacher_name", response.data.name || "Teacher");

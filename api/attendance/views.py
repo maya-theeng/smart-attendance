@@ -1,13 +1,17 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
+# pyrefly: ignore [missing-import]
 from rest_framework import status
+# pyrefly: ignore [missing-import]
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+# pyrefly: ignore [missing-import]
 from rest_framework.response import Response
 
 from .models import AttendanceRecord, EmailNotification, StudentProfile, Subject, Teacher
+# pyrefly: ignore [missing-import]
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.core.mail import send_mail
 from django.conf import settings
@@ -46,7 +50,7 @@ def login_view(request):
 
     user = authenticated_user
 
-    # Check if user is an admin (staff member)
+    # Check if user is admin (staff member)
     if user.is_staff:
         # Allow admin login without StudentProfile or Teacher check
         token, _ = Token.objects.get_or_create(user=user)
@@ -133,7 +137,6 @@ def student_profile(request):
 
 
 #Dashboard Stats
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_stats(request):
@@ -150,7 +153,7 @@ def dashboard_stats(request):
     running_total = 0
     running_present = 0
     
-    # Group by date to handle multiple classes in a single day
+    #Group by date to handle multiple classes in a single day
     date_groups = {}
     for r in student_records:
         date_str = r.date.isoformat()
@@ -183,7 +186,6 @@ def dashboard_stats(request):
 
 
 # Subject-wise Attendance
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def subject_attendance(request):
@@ -206,9 +208,9 @@ def subject_attendance(request):
         records = AttendanceRecord.objects.filter(
             student=request.user, subject=subject
         )
-        total = subject.total_classes or records.count()
+        total = records.count()
         present = records.filter(status=AttendanceRecord.STATUS_PRESENT).count()
-        absent = total - present
+        absent = records.filter(status=AttendanceRecord.STATUS_ABSENT).count()
         percentage = round((present / total) * 100) if total > 0 else 0
 
         result.append({
@@ -218,13 +220,13 @@ def subject_attendance(request):
             'present': present,
             'absent': absent,
             'percentage': percentage,
+            'syllabus_classes': subject.total_classes,
         })
 
     return Response(result)
 
 
 # Attendance Records 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def attendance_records(request):

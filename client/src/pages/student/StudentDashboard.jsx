@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ChevronLeft, 
@@ -11,7 +11,7 @@ import {
   LogOut,
   CheckCircle,
   XCircle,
-  Percent,
+
   AlertTriangle,
   Inbox,
   Sparkles,
@@ -19,8 +19,8 @@ import {
   User,
   Lock
 } from "lucide-react";
-import API from "../api/api";
-import "./Dashboard.css";
+import API from "../../api/api";
+import "./StudentDashboard.css";
 
 // Chart.js imports
 import {
@@ -59,13 +59,14 @@ const FALLBACK_STUDENT = {
   department: "N/A",
 };
 
-const FALLBACK_STATS = { totalClasses: 0, present: 0, absent: 0, percentage: 0 };
+const FALLBACK_STATS = { totalClasses: 0, present: 0, absent: 0, percentage: 0, trend: [] };
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState("2026-09");
 
   // Password Change State
   const [pwdData, setPwdData] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
@@ -108,6 +109,7 @@ export default function Dashboard() {
           present: s.present,
           absent: s.absent,
           percentage: s.percentage,
+          trend: s.trend || [],
         });
 
         setSubjects(subjectsRes.data);
@@ -220,50 +222,126 @@ export default function Dashboard() {
   const circleColor =
     percentage >= 75 ? "#10d48e" : percentage >= 60 ? "#f59e0b" : "#ef4444";
 
-  // Fallback data for charts if API data is missing/empty
-  const fallbackStudentTrend = [
-    { date: "2026-05-10", percentage: 100 },
-    { date: "2026-05-12", percentage: 80 },
-    { date: "2026-05-13", percentage: 85 },
-    { date: "2026-05-15", percentage: 78 },
-    { date: "2026-05-16", percentage: 82 },
-    { date: "2026-05-17", percentage: 76 },
-    { date: "2026-05-18", percentage: 80 },
-  ];
+  // Real data only: use backend trend or compute directly from student's real records
+  const rawTrend = useMemo(() => {
+    if (stats.trend && stats.trend.length > 0) {
+      return stats.trend;
+    }
+    if (records && records.length > 0) {
+      const dateMap = new Map();
+      const sortedRecs = [...records].sort((a, b) => (a.date > b.date ? 1 : -1));
+      let runningTotal = 0;
+      let runningPresent = 0;
 
-  const fallbackStudentSubjects = [
-    { name: "Data Structures", percentage: 87, code: "CS301" },
-    { name: "Operating Systems", percentage: 75, code: "CS302" },
-    { name: "Database Management", percentage: 90, code: "CS303" },
-    { name: "Computer Networks", percentage: 69, code: "CS304" },
-  ];
+      sortedRecs.forEach((r) => {
+        const d = r.date;
+        if (!dateMap.has(d)) {
+          dateMap.set(d, { date: d, total: 0, present: 0 });
+        }
+        const item = dateMap.get(d);
+        item.total += 1;
+        if (r.status === "Present") {
+          item.present += 1;
+        }
+      });
 
-  const studentTrendData = stats.trend && stats.trend.length > 0
-    ? stats.trend
-    : fallbackStudentTrend;
+      const points = [];
+      dateMap.forEach((val) => {
+        runningTotal += val.total;
+        runningPresent += val.present;
+        const pct = Math.round((runningPresent / runningTotal) * 100);
+        points.push({
+          date: val.date,
+          percentage: pct,
+          present_today: val.present,
+          total_today: val.total,
+        });
+      });
+      return points;
+    }
+    return [];
+  }, [stats.trend, records]);
 
-  const studentSubjectsData = subjects && subjects.length > 0
-    ? subjects
-    : fallbackStudentSubjects;
+  // Distinct available months from student's real records
+  const availableMonths = useMemo(() => {
+    const set = new Set();
+    (records || []).forEach((r) => {
+      if (r.date) set.add(r.date.substring(0, 7));
+    });
+    set.add("2026-09");
+    return Array.from(set).sort().reverse();
+  }, [records]);
 
-  // Chart 1: Trend line (cumulative percentage over time)
+  // Helper to format "2026-09" to "September 2026"
+  const formatMonthName = (ym) => {
+    if (!ym) return "";
+    const [year, month] = ym.split("-");
+    const d = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+    return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  };
+
+  // Daily attendance progression for the selected month
+  const monthDailyTrend = useMemo(() => {
+    if (!records || records.length === 0) return [];
+    const targetYM = selectedMonth || "2026-09";
+    const monthRecs = records.filter((r) => r.date && r.date.startsWith(targetYM));
+    if (monthRecs.length === 0) return [];
+
+    const sorted = [...monthRecs].sort((a, b) => (a.date > b.date ? 1 : -1));
+    const dateMap = new Map();
+
+    sorted.forEach((r) => {
+      const d = r.date;
+      if (!dateMap.has(d)) {
+        dateMap.set(d, { date: d, total: 0, present: 0 });
+      }
+      const item = dateMap.get(d);
+      item.total += 1;
+      if (r.status === "Present") {
+        item.present += 1;
+      }
+    });
+
+    const points = [];
+    let runningTotal = 0;
+    let runningPresent = 0;
+    dateMap.forEach((val) => {
+      runningTotal += val.total;
+      runningPresent += val.present;
+      const percentage = Math.round((runningPresent / runningTotal) * 100);
+      points.push({
+        date: val.date,
+        percentage,
+        present_today: val.present,
+        total_today: val.total,
+      });
+    });
+
+    return points;
+  }, [records, selectedMonth]);
+
+  const studentSubjectsData = subjects || [];
+
+  // Chart 1: Line Chart for the selected month's daily attendance
   const studentLineData = {
-    labels: studentTrendData.map((item) => {
+    labels: monthDailyTrend.map((item) => {
       const d = new Date(item.date);
       return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     }),
     datasets: [
       {
-        label: "Overall Attendance Trend (%)",
-        data: studentTrendData.map((item) => item.percentage),
+        label: `${formatMonthName(selectedMonth)} Attendance Rate (%)`,
+        data: monthDailyTrend.map((item) => item.percentage),
         borderColor: "#0bc0e4",
-        backgroundColor: "rgba(11, 192, 228, 0.1)",
+        backgroundColor: "rgba(11, 192, 228, 0.12)",
         borderWidth: 3,
-        tension: 0.4,
+        tension: 0.35,
         fill: true,
         pointBackgroundColor: "#0bc0e4",
         pointBorderColor: "#fff",
-        pointHoverRadius: 6,
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8,
       },
     ],
   };
@@ -274,8 +352,20 @@ export default function Dashboard() {
     plugins: {
       legend: { display: false },
       tooltip: {
+        backgroundColor: "#0a3d5c",
+        padding: 10,
+        cornerRadius: 8,
         callbacks: {
-          label: (context) => `Attendance Rate: ${context.parsed.y}%`,
+          label: (context) => {
+            const item = monthDailyTrend[context.dataIndex];
+            const pct = context.parsed.y;
+            if (item) {
+              const p = item.present_today;
+              const t = item.total_today;
+              return ` Attendance: ${pct}% (${p}/${t} classes attended)`;
+            }
+            return ` Attendance Rate: ${pct}%`;
+          },
         },
       },
     },
@@ -284,7 +374,10 @@ export default function Dashboard() {
         min: 0,
         max: 100,
         grid: { color: "#f0fcff" },
-        ticks: { color: "#6b8caa" },
+        ticks: { 
+          color: "#6b8caa",
+          callback: (val) => `${val}%`,
+        },
       },
       x: {
         grid: { display: false },
@@ -475,7 +568,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* ─── OVERVIEW TAB ─── */}
+        {/*OVERVIEW TAB */}
         {activeTab === "overview" && (
           <div className="dash-content">
             <div className="dash-stat-grid">
@@ -484,8 +577,8 @@ export default function Dashboard() {
                   <Calendar size={32} color="#0bc0e4" />
                 </div>
                 <div>
-                  <p className="dash-stat-label">Total Classes</p>
-                  <p className="dash-stat-value">{stats.totalClasses}</p>
+                  <h3>Total Classes</h3>
+                  <p>{stats.totalClasses}</p>
                 </div>
               </div>
               <div className="dash-stat-card dash-stat-present">
@@ -493,8 +586,8 @@ export default function Dashboard() {
                   <CheckCircle size={32} color="#10d48e" />
                 </div>
                 <div>
-                  <p className="dash-stat-label">Present</p>
-                  <p className="dash-stat-value">{stats.present}</p>
+                  <h3>Present</h3>
+                  <p>{stats.present}</p>
                 </div>
               </div>
               <div className="dash-stat-card dash-stat-absent">
@@ -502,21 +595,11 @@ export default function Dashboard() {
                   <XCircle size={32} color="#ef4444" />
                 </div>
                 <div>
-                  <p className="dash-stat-label">Absent</p>
-                  <p className="dash-stat-value">{stats.absent}</p>
+                  <h3>Absent</h3>
+                  <p>{stats.absent}</p>
                 </div>
               </div>
-              <div className="dash-stat-card dash-stat-pct">
-                <div className="dash-stat-icon">
-                  <Percent size={32} color="#f59e0b" />
-                </div>
-                <div>
-                  <p className="dash-stat-label">Attendance %</p>
-                  <p className="dash-stat-value" style={{ color: circleColor }}>
-                    {stats.percentage}%
-                  </p>
-                </div>
-              </div>
+
             </div>
 
             {/* Circular Progress + Info */}
@@ -558,35 +641,58 @@ export default function Dashboard() {
                   {atRiskSubjects === 0 ? <><Sparkles size={16} /> All subjects on track!</> : <><AlertTriangle size={16} /> {atRiskSubjects} subject(s) below 75%</>}
                 </div>
               </div>
-
-              <div className="dash-info-card">
-                <h3>Student Information</h3>
-                <div className="dash-info-list">
-                  {[
-                    { label: "Full Name", value: student.name },
-                    { label: "Email", value: student.email },
-                    { label: "Student ID", value: student.studentId },
-                    { label: "Department", value: student.department },
-                    { label: "Semester", value: student.semester },
-                  ].map((item) => (
-                    <div className="dash-info-row" key={item.label}>
-                      <span className="dash-info-label">{item.label}</span>
-                      <span className="dash-info-value">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Visual Analytics Charts Section */}
             <div className="dash-analytics-row">
               <div className="dash-chart-card">
-                <div className="dash-chart-header">
-                  <h3>Attendance Progress Trend</h3>
-                  <span className="dash-chart-subtitle">Cumulative attendance rate over time</span>
+                <div className="dash-chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                  <div>
+                    <h3>{formatMonthName(selectedMonth)} Attendance Trend</h3>
+                    <span className="dash-chart-subtitle">
+                      Daily attendance progression in {formatMonthName(selectedMonth)}
+                    </span>
+                  </div>
+                  {availableMonths.length > 1 && (
+                    <div>
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        style={{
+                          padding: "5px 12px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          borderRadius: "8px",
+                          border: "1px solid #cbd5e1",
+                          color: "#0a3d5c",
+                          background: "#f0fcff",
+                          cursor: "pointer",
+                          outline: "none"
+                        }}
+                      >
+                        {availableMonths.map((ym) => (
+                          <option key={ym} value={ym}>
+                            {formatMonthName(ym)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
-                <div className="chart-container" style={{ position: "relative", height: "220px", width: "100%" }}>
-                  <Line data={studentLineData} options={studentLineOptions} />
+                <div className="chart-container" style={{ position: "relative", height: "220px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {monthDailyTrend.length > 0 ? (
+                    <Line data={studentLineData} options={studentLineOptions} />
+                  ) : (
+                    <div style={{ textAlign: "center", color: "#6b8caa", padding: "20px 0" }}>
+                      <Calendar size={28} style={{ margin: "0 auto 8px", opacity: 0.6 }} />
+                      <p style={{ fontWeight: "600", fontSize: "14px", color: "#0a3d5c", marginBottom: "4px" }}>
+                        No attendance records in {formatMonthName(selectedMonth)}
+                      </p>
+                      <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                        Attendance will appear here after class scans
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -595,8 +701,16 @@ export default function Dashboard() {
                   <h3>Subject Comparison</h3>
                   <span className="dash-chart-subtitle">Your attendance percentage across subjects</span>
                 </div>
-                <div className="chart-container" style={{ position: "relative", height: "220px", width: "100%" }}>
-                  <Bar data={studentBarData} options={studentBarOptions} />
+                <div className="chart-container" style={{ position: "relative", height: "220px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {studentSubjectsData.length > 0 ? (
+                    <Bar data={studentBarData} options={studentBarOptions} />
+                  ) : (
+                    <div style={{ textAlign: "center", color: "#6b8caa", padding: "20px 0" }}>
+                      <BookOpen size={28} style={{ margin: "0 auto 8px", opacity: 0.6 }} />
+                      <p style={{ fontWeight: "600", fontSize: "14px", color: "#0a3d5c", marginBottom: "4px" }}>No enrolled subjects yet</p>
+                      <span style={{ fontSize: "12px", color: "#94a3b8" }}>Subject attendance will appear here once enrolled</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -625,7 +739,7 @@ export default function Dashboard() {
 
 
 
-        {/* ─── SUBJECTS TAB ─── */}
+        {/*SUBJECTS TAB */}
         {activeTab === "subjects" && (
           <div className="dash-content">
             <div className="dash-subject-grid">
@@ -669,7 +783,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ─── RECORDS TAB ─── */}
+        {/*RECORDS TAB */}
         {activeTab === "records" && (
           <div className="dash-content">
             <div className="dash-table-card">
@@ -708,7 +822,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ─── NOTIFICATIONS TAB ─── */}
+        {/* NOTIFICATIONS TAB */}
         {activeTab === "notifications" && (
           <div className="dash-content">
             <div className="dash-email-layout">
@@ -780,7 +894,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ─── PROFILE SETTINGS TAB ─── */}
+        {/*PROFILE SETTINGS TAB*/}
         {activeTab === "profile" && (
           <div className="dash-content">
             <div className="dash-analytics-row" style={{ alignItems: "flex-start" }}>

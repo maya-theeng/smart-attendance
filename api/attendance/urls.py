@@ -30,15 +30,14 @@ urlpatterns = [
     # Contact
     path('contact/', views.contact_us),
     
-    # -----------------------------------------------------------------
     # ADMIN API ROUTES
-    # -----------------------------------------------------------------
     path('admin/dashboard/stats/', admin_views.admin_dashboard_stats),
     path('admin/dashboard/monthly-report/', admin_views.admin_monthly_report),
     path('admin/students/', admin_views.admin_students_list),
     path('admin/students/<int:user_id>/', admin_views.admin_student_detail),
     path('admin/students/<int:user_id>/upload-face/', admin_views.admin_student_face_upload),
     path('admin/attendance/records/', admin_views.admin_attendance_records),
+    path('admin/attendance/records/<int:record_id>/', admin_views.admin_attendance_record_detail),
     path('admin/attendance/mark/', admin_views.admin_mark_attendance),
     path('admin/attendance/recognize/', admin_views.admin_recognize_faces),
     path('admin/subjects/', admin_views.admin_subjects),

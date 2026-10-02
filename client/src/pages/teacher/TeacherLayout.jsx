@@ -8,7 +8,8 @@ import {
   LogOut, 
   ChevronLeft, 
   ChevronRight,
-  GraduationCap
+  GraduationCap,
+  Settings
 } from "lucide-react";
 import "../admin/AdminLayout.css"; // Reuse sidebar layout styles
 
@@ -34,6 +35,7 @@ export default function TeacherLayout() {
     { path: "/teacher/take-attendance", label: "Take Attendance", icon: Camera },
     { path: "/teacher/records", label: "Records", icon: Calendar },
     { path: "/teacher/subjects", label: "Subjects", icon: BookOpen },
+    { path: "/teacher/settings", label: "Settings", icon: Settings },
   ];
 
   return (

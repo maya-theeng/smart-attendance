@@ -1,8 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+// Public Pages
 import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import Home from "./pages/public/Home";
+import Login from "./pages/public/Login";
+
+// Student Pages
+import StudentDashboard from "./pages/student/StudentDashboard";
 
 // Admin Pages
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -20,6 +24,7 @@ import Settings from "./pages/admin/Settings";
 // Teacher Pages
 import TeacherLayout from "./pages/teacher/TeacherLayout";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import TeacherSettings from "./pages/teacher/TeacherSettings";
 
 export default function App() {
   return (
@@ -28,10 +33,10 @@ export default function App() {
         {/* Student/Public Routes */}
         <Route path="/" element={<><Navbar /><Home /></>} />
         <Route path="/login" element={<><Navbar /><Login /></>} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<StudentDashboard />} />
         
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="students" element={<Students />} />
@@ -51,6 +56,7 @@ export default function App() {
           <Route path="take-attendance" element={<TakeAttendance />} />
           <Route path="records" element={<AttendanceRecords />} />
           <Route path="subjects" element={<Subjects />} />
+          <Route path="settings" element={<TeacherSettings />} />
         </Route>
 
         <Route path="*" element={<><Navbar /><Home /></>} />
