@@ -17,9 +17,9 @@ The system replaces manual roll-calling with real-time biometric verification us
   * **Screen Bezel Ring Detection**: Analyzes luminance uniformity and bezel dark edges to detect phones/tablets shown to the camera.
   * **Glare / Specular Reflection Check**: Identifies glass/screen reflective hot spots.
 * **Role-Based Portals**:
-  * 👑 **Admin Portal**: Analytics dashboard, monthly trends, student/teacher enrollment, webcam biometric enrollment, live multi-face attendance scanning, syllabus/course manager, and automated email warning triggers.
+  * **Admin Portal**: Analytics dashboard, monthly trends, student/teacher enrollment, webcam biometric enrollment, live multi-face attendance scanning, syllabus/course manager, and automated email warning triggers.
   * **Teacher Portal**: Assigned subject schedule, live attendance scanning, student records, and class logs.
-  * 🎓**Student Portal**: Real-time personal attendance percentage, per-subject breakdown, and absentee warning notifications.
+  * **Student Portal**: Real-time personal attendance percentage, per-subject breakdown, and absentee warning notifications.
 * **Automated Email Notifications**:
   * Sends automated email alerts to students with low attendance or multiple consecutive absences via SMTP.
 
